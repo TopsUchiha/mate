@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ShipmentStatus {
+  PENDING
+  PROCESSING
+  IN_TRANSIT
+  ON_HOLD
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+}
+
+model Admin {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Shipment {
+  id                String             @id @default(cuid())
+  trackingNumber    String             @unique
+  senderName        String
+  receiverName      String
+  senderContact     String
+  receiverContact   String
+  origin            String
+  destination       String
+  packageType       String
+  weight            Decimal            @db.Decimal(10, 2)
+  status            ShipmentStatus     @default(PENDING)
+  currentLocation   String
+  latitude          Float?
+  longitude         Float?
+  estimatedDelivery DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  events            TrackingEvent[]
+  documents         ShipmentDocument[]
+
+  @@index([status])
+  @@index([currentLocation])
+  @@index([createdAt])
+}
+
+model TrackingEvent {
+  id          String   @id @default(cuid())
+  shipmentId  String
+  status      String
+  location    String
+  description String
+  eventDate   DateTime
+  createdAt   DateTime @default(now())
+  shipment    Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  @@index([shipmentId, eventDate])
+}
+
+model ShipmentDocument {
+  id         String   @id @default(cuid())
+  shipmentId String
+  fileName   String
+  fileUrl    String
+  fileType   String
+  fileSize   Int
+  data       Bytes
+  createdAt  DateTime @default(now())
+  shipment   Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  @@index([shipmentId])
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  subject   String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([read])
+}
